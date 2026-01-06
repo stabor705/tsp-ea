@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TSP Evolutionary Solver - Professional Layout</title>
+    
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        body { background-color: #f8fafc; font-family: 'Inter', sans-serif; }
+        canvas { touch-action: none; }
+        /* Custom scrollbar for logs */
+        .log-scroll::-webkit-scrollbar { width: 6px; }
+        .log-scroll::-webkit-scrollbar-track { background: #1f2937; border-radius: 4px; }
+        .log-scroll::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
+        .log-scroll::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+        
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- HARDCODED ICONS (Reliable, no crash) ---
+        const IconNetwork = ({ className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="16" y="16" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="9" y="2" width="6" height="6" rx="1"/><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/><path d="M12 12V8"/></svg>
+        );
+        const IconSliders = ({ className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="4" x2="4" y1="21" y2="14"/><line x1="4" x2="4" y1="10" y2="3"/><line x1="12" x2="12" y1="21" y2="12"/><line x1="12" x2="12" y1="8" y2="3"/><line x1="20" x2="20" y1="21" y2="16"/><line x1="20" x2="20" y1="12" y2="3"/><line x1="2" x2="6" y1="14" y2="14"/><line x1="10" x2="14" y1="8" y2="8"/><line x1="18" x2="22" y1="16" y2="16"/></svg>
+        );
+        const IconTrophy = ({ className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+        );
+        const IconMapPin = ({ className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+        );
+        const IconTerminal = ({ className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></svg>
+        );
+        const IconList = ({ className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>
+        );
+
+        const Spinner = () => (
+            <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+        );
+
+        // --- Layout Components ---
+
+        const SummaryPanel = ({ result }) => {
+            if (!result) return null;
+            if (!result.history || !result.history.best_distance || result.history.best_distance.length === 0) return null;
+
+            const improvement = ((1 - result.best_distance / result.history.best_distance[0]) * 100).toFixed(1);
+            
+            return (
+                <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 mt-4 fade-in">
+                    <h2 className="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                        <IconTrophy className="w-4 h-4 text-amber-500" /> Results
+                    </h2>
+                    
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                            <span className="text-[10px] text-slate-500 uppercase font-bold">Start Dist</span>
+                            <div className="text-lg font-mono text-slate-600">{result.history.best_distance[0].toFixed(0)}</div>
+                        </div>
+                        <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
+                            <span className="text-[10px] text-blue-500 uppercase font-bold">Final Dist</span>
+                            <div className="text-lg font-bold font-mono text-blue-700">{result.best_distance.toFixed(0)}</div>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center justify-between bg-emerald-50 px-3 py-2 rounded-lg border border-emerald-100 mb-4">
+                        <span className="text-xs text-emerald-700 font-medium">Optimization</span>
+                        <span className="text-sm font-bold text-emerald-600">+{improvement}%</span>
+                    </div>
+                    
+                    <div>
+                        <span className="text-[10px] text-slate-400 uppercase font-bold block mb-1">Best Path Sequence</span>
+                        <div className="bg-slate-100 p-2 rounded border border-slate-200 text-[10px] text-slate-500 font-mono break-all max-h-20 overflow-y-auto">
+                            {result.best_tour.join(' → ')}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const TourCanvas = ({ cities, tour }) => {
+            const canvasRef = useRef(null);
+
+            useEffect(() => {
+                const canvas = canvasRef.current;
+                const ctx = canvas.getContext('2d');
+                const width = canvas.width;
+                const height = canvas.height;
+
+                ctx.clearRect(0, 0, width, height);
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, width, height);
+
+                // Grid background
+                ctx.strokeStyle = '#f1f5f9';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                for(let i=0; i<width; i+=40) { ctx.moveTo(i,0); ctx.lineTo(i,height); }
+                for(let i=0; i<height; i+=40) { ctx.moveTo(0,i); ctx.lineTo(width,i); }
+                ctx.stroke();
+
+                if (!cities || cities.length === 0) return;
+
+                // CHANGED: Reduced padding from 40 to 15 to use more space
+                const padding = 15;
+                const scaleX = (width - padding * 2) / 100;
+                const scaleY = (height - padding * 2) / 100;
+
+                const getX = (val) => padding + val * scaleX;
+                const getY = (val) => padding + val * scaleY;
+
+                // Draw Path
+                if (tour && tour.length > 0) {
+                    ctx.beginPath();
+                    ctx.strokeStyle = '#3b82f6';
+                    ctx.lineWidth = 2;
+                    ctx.lineJoin = 'round';
+                    
+                    if (cities[tour[0]]) {
+                        const startCity = cities[tour[0]];
+                        ctx.moveTo(getX(startCity[0]), getY(startCity[1]));
+
+                        for (let i = 1; i < tour.length; i++) {
+                            const city = cities[tour[i]];
+                            if (city) ctx.lineTo(getX(city[0]), getY(city[1]));
+                        }
+                        ctx.lineTo(getX(startCity[0]), getY(startCity[1]));
+                        ctx.stroke();
+                        ctx.fillStyle = 'rgba(59, 130, 246, 0.05)';
+                        ctx.fill();
+                    }
+                }
+
+                // Draw Cities & Numbers
+                cities.forEach((city, index) => {
+                    const x = getX(city[0]);
+                    const y = getY(city[1]);
+                    
+                    // Shadow
+                    ctx.beginPath();
+                    ctx.arc(x, y + 3, 6, 0, 2 * Math.PI);
+                    ctx.fillStyle = 'rgba(0,0,0,0.1)';
+                    ctx.fill();
+
+                    // Dot
+                    ctx.beginPath();
+                    ctx.arc(x, y, 5, 0, 2 * Math.PI);
+                    ctx.fillStyle = index === 0 ? '#10b981' : '#ef4444'; 
+                    ctx.fill();
+                    
+                    ctx.lineWidth = 2;
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.stroke();
+                    
+                    // Number Label
+                    // CHANGED: Increased font size from 10px to 14px
+                    ctx.fillStyle = '#64748b'; // Slate-500
+                    ctx.font = 'bold 14px Inter, sans-serif'; 
+                    ctx.textAlign = 'center';
+                    ctx.fillText(index, x, y - 10); // Adjusted y-offset slightly for larger font
+                });
+
+            }, [cities, tour]);
+
+            return (
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 h-full flex flex-col">
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                            <IconMapPin className="w-4 h-4 text-blue-500" />
+                            Spatial Visualization
+                        </h3>
+                        {cities && (
+                            <span className="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded-md font-medium">
+                                {cities.length} Nodes
+                            </span>
+                        )}
+                    </div>
+                    <div className="flex-1 relative bg-slate-50 rounded-lg overflow-hidden border border-slate-200 flex items-center justify-center">
+                        {/* CHANGED: Removed max-h-[450px] to allow canvas to fill the 700px container */}
+                        <canvas 
+                            ref={canvasRef} 
+                            width={800} 
+                            height={800} 
+                            className="w-full h-full object-contain"
+                        />
+                    </div>
+                </div>
+            );
+        };
+
+        const LineChart = ({ data, colorHex, title }) => {
+            const canvasRef = useRef(null);
+
+            useEffect(() => {
+                if (!data || data.length === 0) return;
+
+                const canvas = canvasRef.current;
+                const ctx = canvas.getContext('2d');
+                const width = canvas.width;
+                const height = canvas.height;
+                const padding = 40;
+
+                ctx.clearRect(0, 0, width, height);
+
+                const maxVal = Math.max(...data);
+                const minVal = Math.min(...data);
+                const range = maxVal - minVal;
+
+                // Gradient
+                const gradient = ctx.createLinearGradient(0, 0, 0, height);
+                gradient.addColorStop(0, `${colorHex}40`); 
+                gradient.addColorStop(1, `${colorHex}00`); 
+
+                // Grid
+                // CHANGED: Darker grid color for better visibility
+                ctx.strokeStyle = '#cbd5e1'; 
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                for (let i = 0; i <= 4; i++) {
+                    const y = padding + (height - padding * 2) * (i / 4);
+                    ctx.moveTo(padding, y);
+                    ctx.lineTo(width, y);
+                }
+                ctx.stroke();
+
+                // Line
+                ctx.beginPath();
+                ctx.strokeStyle = colorHex;
+                ctx.lineWidth = 2;
+                ctx.lineJoin = 'round';
+
+                const stepX = (width - padding) / (Math.max(data.length - 1, 1));
+                
+                data.forEach((val, i) => {
+                    const x = padding + i * stepX;
+                    const normalizedY = (val - minVal) / (range || 1);
+                    const y = (height - padding) - (normalizedY * (height - padding * 2));
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                });
+                ctx.stroke();
+
+                ctx.lineTo(padding + (data.length - 1) * stepX, height - padding);
+                ctx.lineTo(padding, height - padding);
+                ctx.closePath();
+                ctx.fillStyle = gradient;
+                ctx.fill();
+
+                // Labels
+                // CHANGED: Darker color and larger font size
+                ctx.fillStyle = '#475569';
+                ctx.font = '11px Inter';
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(minVal.toFixed(1), padding - 5, height - padding);
+                ctx.fillText(maxVal.toFixed(1), padding - 5, padding);
+
+            }, [data, colorHex]);
+
+            return (
+                <div className="flex-1 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                    <h4 className="text-xs font-bold text-slate-500 mb-3 uppercase tracking-wider">{title}</h4>
+                    <div className="w-full h-48">
+                        <canvas ref={canvasRef} width={800} height={300} className="w-full h-full block" />
+                    </div>
+                </div>
+            );
+        };
+        
+        const DualLineChart = ({ data1, data2, color1, color2, title }) => {
+            const canvasRef = useRef(null);
+
+            useEffect(() => {
+                if (!data1 || data1.length === 0) return;
+
+                const canvas = canvasRef.current;
+                const ctx = canvas.getContext('2d');
+                const width = canvas.width;
+                const height = canvas.height;
+                const padding = 40;
+
+                ctx.clearRect(0, 0, width, height);
+
+                const allData = [...data1, ...data2];
+                const maxVal = Math.max(...allData);
+                const minVal = Math.min(...allData);
+                const range = maxVal - minVal;
+
+                // CHANGED: Darker grid color
+                ctx.strokeStyle = '#cbd5e1';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                for (let i = 0; i <= 4; i++) {
+                    const y = padding + (height - padding * 2) * (i / 4);
+                    ctx.moveTo(padding, y);
+                    ctx.lineTo(width, y);
+                }
+                ctx.stroke();
+
+                const stepX = (width - padding) / (Math.max(data1.length - 1, 1));
+                
+                const drawLine = (data, color, isDashed) => {
+                    if (!data || data.length === 0) return;
+                    ctx.beginPath();
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 2;
+                    if (isDashed) ctx.setLineDash([4, 4]);
+                    else ctx.setLineDash([]);
+
+                    data.forEach((val, i) => {
+                        const x = padding + i * stepX;
+                        const normalizedY = (val - minVal) / (range || 1);
+                        const y = (height - padding) - (normalizedY * (height - padding * 2));
+                        if (i === 0) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                    });
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                };
+
+                drawLine(data1, color1, false);
+                drawLine(data2, color2, true);
+
+                // CHANGED: Darker color and larger font size
+                ctx.fillStyle = '#475569';
+                ctx.font = '11px Inter';
+                ctx.textAlign = 'right';
+                ctx.fillText(minVal.toFixed(4), padding - 5, height - padding);
+                ctx.fillText(maxVal.toFixed(4), padding - 5, padding);
+
+            }, [data1, data2]);
+
+             return (
+                <div className="flex-1 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                     <div className="flex justify-between items-center mb-3">
+                        <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">{title}</h4>
+                        <div className="flex gap-3 text-[10px] font-medium">
+                            <span className="flex items-center gap-1 text-slate-600"><div className="w-2 h-2 rounded-full bg-emerald-500"></div> Best</span>
+                            <span className="flex items-center gap-1 text-slate-600"><div className="w-2 h-2 rounded-full border border-red-500"></div> Avg</span>
+                        </div>
+                    </div>
+                    <div className="w-full h-48">
+                        <canvas ref={canvasRef} width={800} height={300} className="w-full h-full block" />
+                    </div>
+                </div>
+            );
+        };
+
+        const GenerationLog = ({ history }) => {
+            if (!history || !history.best_distance) return (
+                 <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 h-[700px] flex flex-col items-center justify-center text-slate-400">
+                    <IconList className="w-8 h-8 mb-2 opacity-50" />
+                    <p className="text-sm">No data generated yet</p>
+                </div>
+            );
+            
+            const logs = [];
+            const total = history.best_distance.length;
+            
+            for (let i = 0; i < total; i++) {
+                if (i === 0 || i % 20 === 0 || i === total - 1) {
+                    if (logs.length > 0 && logs[logs.length - 1].gen === i) continue;
+                    logs.push({
+                        gen: i,
+                        dist: history.best_distance[i],
+                        avgFit: history.avg_fitness[i]
+                    });
+                }
+            }
+
+            return (
+                <div className="bg-white p-0 rounded-xl shadow-sm border border-slate-200 h-[700px] flex flex-col overflow-hidden">
+                    <div className="p-4 border-b border-slate-100 bg-slate-50">
+                        <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                            <IconTerminal className="w-4 h-4 text-slate-500" />
+                            Evolution Log
+                        </h3>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 px-4 py-2 bg-slate-900 text-slate-400 text-[10px] uppercase font-bold tracking-wider">
+                        <div>Gen</div>
+                        <div className="text-right">Distance</div>
+                        <div className="text-right">Avg Fit</div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto log-scroll bg-slate-900 p-2">
+                        <table className="w-full text-left border-collapse font-mono text-xs">
+                            <tbody>
+                                {logs.map((log) => (
+                                    <tr key={log.gen} className="hover:bg-slate-800 transition-colors border-b border-slate-800/50 last:border-0">
+                                        <td className="py-2 px-2 text-blue-400 font-medium">{log.gen.toString().padStart(3, '0')}</td>
+                                        <td className="py-2 px-2 text-right text-emerald-400">{log.dist.toFixed(1)}</td>
+                                        <td className="py-2 px-2 text-right text-amber-400 opacity-80">{log.avgFit.toFixed(5)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [params, setParams] = useState({
+                num_cities: 30,
+                population_size: 150,
+                generations: 700,
+                mutation_rate: 0.20,
+                elitism_count: 3,
+                seed: 42
+            });
+            const [result, setResult] = useState(null);
+            const [loading, setLoading] = useState(false);
+            const [error, setError] = useState(null);
+
+            const handleChange = (e) => {
+                setParams({
+                    ...params,
+                    [e.target.name]: parseFloat(e.target.value)
+                });
+            };
+
+            const runSimulation = async () => {
+                setLoading(true);
+                setError(null);
+                try {
+                    const response = await fetch('/api/solve', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(params)
+                    });
+                    if (!response.ok) throw new Error("API Request Failed");
+                    const data = await response.json();
+                    setResult(data);
+                } catch (err) {
+                    setError(err.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            return (
+                <div className="min-h-screen p-6 max-w-[1600px] mx-auto font-sans text-slate-800">
+                    
+                    {/* Header */}
+                    <header className="mb-8 border-b border-slate-200 pb-4 flex justify-between items-end">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl shadow-lg shadow-blue-200">
+                                <IconNetwork className="text-white w-6 h-6" />
+                            </div>
+                            <div>
+                                <h1 className="text-2xl font-bold text-slate-900 tracking-tight">TSP Evolutionary Solver</h1>
+                                <p className="text-slate-500 text-sm font-medium">Genetic Algorithm Visualization & Analysis</p>
+                            </div>
+                        </div>
+                        <div className="text-right hidden sm:block">
+                            <div className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Status</div>
+                            <div className={`text-sm font-medium ${loading ? 'text-blue-600 animate-pulse' : 'text-slate-600'}`}>
+                                {loading ? 'Processing...' : result ? 'Optimization Complete' : 'Ready'}
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* TOP ROW: Config | Map | Log */}
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                        
+                        {/* COLUMN 1: Configuration & Summary (Span 3) */}
+                        <div className="lg:col-span-3 flex flex-col gap-0">
+                            <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                                <h2 className="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                                    <IconSliders className="w-4 h-4 text-slate-400" /> Parameters
+                                </h2>
+                                
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Num Cities</label>
+                                        <input type="number" name="num_cities" value={params.num_cities} onChange={handleChange}
+                                            className="w-full mt-1 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Population</label>
+                                            <input type="number" name="population_size" value={params.population_size} onChange={handleChange}
+                                                className="w-full mt-1 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none" />
+                                        </div>
+                                        <div>
+                                            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Generations</label>
+                                            <input type="number" name="generations" value={params.generations} onChange={handleChange}
+                                                className="w-full mt-1 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none" />
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Mutation %</label>
+                                            <input type="number" step="0.01" name="mutation_rate" value={params.mutation_rate} onChange={handleChange}
+                                                className="w-full mt-1 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none" />
+                                        </div>
+                                        <div>
+                                            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Elitism</label>
+                                            <input type="number" name="elitism_count" value={params.elitism_count} onChange={handleChange}
+                                                className="w-full mt-1 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none" />
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="pt-2">
+                                        <button 
+                                            onClick={runSimulation}
+                                            disabled={loading}
+                                            className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium py-2.5 px-4 rounded-lg transition-all shadow-lg shadow-slate-200 flex items-center justify-center gap-2 text-sm disabled:opacity-70 disabled:cursor-not-allowed"
+                                        >
+                                            {loading ? <><Spinner /> Optimization in progress...</> : <>Start Simulation</>}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <SummaryPanel result={result} />
+                        </div>
+
+                        {/* COLUMN 2: Tour Map */}
+                        <div className="lg:col-span-6 h-[700px]">
+                            <TourCanvas 
+                                cities={result?.cities} 
+                                tour={result?.best_tour} 
+                            />
+                        </div>
+
+                        {/* COLUMN 3: Logs */}
+                        <div className="lg:col-span-3">
+                            <GenerationLog history={result?.history} />
+                        </div>
+                    </div>
+
+                    {/* BOTTOM ROW: Performance Metrics */}
+                    {result && (
+                        <div className="mt-6 fade-in">
+                            <div className="flex items-center gap-2 mb-4">
+                                <div className="h-px bg-slate-200 flex-1"></div>
+                                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest px-2">Performance Metrics</h3>
+                                <div className="h-px bg-slate-200 flex-1"></div>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <LineChart 
+                                    data={result.history.best_distance} 
+                                    colorHex="#3b82f6" 
+                                    title="Distance Convergence (Lower is Better)" 
+                                />
+                                <DualLineChart 
+                                    data1={result.history.best_fitness}
+                                    data2={result.history.avg_fitness}
+                                    color1="#10b981" 
+                                    color2="#f43f5e" 
+                                    title="Fitness Landscape" 
+                                />
+                            </div>
+                        </div>
+                    )}
+                    
+                    {!result && !loading && (
+                         <div className="mt-6 p-12 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50">
+                            <p className="text-slate-400 text-sm">Run the simulation to view performance metrics</p>
+                        </div>
+                    )}
+
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

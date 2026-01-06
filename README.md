@@ -18,26 +18,48 @@ An Evolutionary Algorithm is a metaheuristic inspired by biological natural sele
 
 ---
 
-### **Project Components (Planned Implementation)**
+### **Project Components**
 
 This repository will be built in logical modules:
 
-1.  **Problem Definition:**
-    * Functions to create or load city datasets (coordinates or distance matrices).
-    * A highly-optimized distance calculator.
+1. **Problem Definition:**
 
-2.  **Core EA Implementation:**
-    * Implementation of the core genetic operators (Selection, Crossover, Mutation) specialized for permutation-based chromosomes.
-    * A population initialization function.
-    * The main evolution loop that runs the algorithm for a set number of generations.
+   * Functions to create or load city datasets (coordinates or distance matrices).
+   * A highly-optimized distance calculator.
+2. **Core EA Implementation:**
 
-3.  **Experimentation & Evaluation:**
-    * A central configuration system to manage algorithm parameters (e.g., population size, mutation rate).
-    * Logging to track metrics like the **best and average fitness** per generation.
-    * Baseline heuristics (like the Nearest Neighbor algorithm) for performance comparison.
+   * Implementation of the core genetic operators (Selection, Crossover, Mutation) specialized for permutation-based chromosomes.
+   * A population initialization function.
+   * The main evolution loop that runs the algorithm for a set number of generations.
+3. **Experimentation & Evaluation:**
 
-4.  **Visualization & Analysis:**
-    * Tools to plot the final, optimized tour on a 2D plane.
-    * Generation of **convergence graphs** (plotting fitness vs. generation) to analyze the algorithm's performance.
-    * An example notebook demonstrating a full run from start to finish.
-    
+   * A central configuration system to manage algorithm parameters (e.g., population size, mutation rate).
+   * Logging to track metrics like the **best and average fitness** per generation.
+   * Baseline heuristics (like the Nearest Neighbor algorithm) for performance comparison.
+4. **Visualization & Analysis:**
+
+   * Tools to plot the final, optimized tour on a 2D plane.
+   * Generation of **convergence graphs** (plotting fitness vs. generation) to analyze the algorithm's performance.
+   * An example notebook demonstrating a full run from start to finish.
+
+---
+
+## Running with Docker
+
+To run the application locally using Docker, follow these steps:
+
+1. **Build the Docker image**
+   Run the following command in the root directory of the project to build the image with the tag `tsp-ea`:
+
+   ```bash
+   docker build -t tsp-ea .
+    ```
+
+2. **Run the container**
+Start the container and map port 8000 of the container to port 8000 on your host machine:
+    ```bash
+    docker run -p 8000:8000 tsp-ea
+    ```
+
+3. **Access the application**
+Once the container is running, open your web browser and navigate to: ```http://localhost:8000```
