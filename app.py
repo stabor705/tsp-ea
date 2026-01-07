@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from typing import List, Dict, Optional
+import random
 
 from src.tsp_problem import create_synthetic_dataset
 from src.ea_core import run as run_ea
@@ -17,7 +18,7 @@ class TSPRequest(BaseModel):
     generations: int = 200
     mutation_rate: float = 0.15
     elitism_count: int = 2
-    seed: Optional[int] = 42
+    seed: Optional[int] = None
 
 class TSPResponse(BaseModel):
     best_tour: List[int]
@@ -45,7 +46,7 @@ def numpy_to_python(obj):
 def solve_tsp(request: TSPRequest):
     cities = create_synthetic_dataset(
         num_cities=request.num_cities, 
-        seed=request.seed
+        seed=request.seed if request.seed is not None else random.randint(0, 10000)
     )
 
     best_tour, best_distance, history = run_ea(
